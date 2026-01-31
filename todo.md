@@ -4,13 +4,24 @@
     - Now that we figured out interpolation, non-linear scaling/mapping, and phasing, as well as have a better idea of how to write our functions (thanks Hydra!),
       it's time to put together a toy for demo palooza!
 2. Can we only use the exponential function without interpolation (eg. for circle radius)?
+3. Mute / Unmute (for all the extra circles)
+
+Refactoring:
+1. It's time to start breaking apart the main .js file into components.
+- Eg. phaser.js, midi.js, uniform.js, etc.
 
 ### 2026 Jan 30
 1. Phaser/Oscillator Params
   a. Velocity
   b. Min / Max Values
   c. Start Value
-2. Setup Digitakt to Receive Mutes and Unmutes
+2. Came up with a pretty code structure that allows easy pairing between GLSL uniforms and Midi CCs
+  - Allows setting range of CC values and mapping for non-linear functions
+  - Created an "Evaluator" class. I don't like how wordy it is. I think I can refactor to be able to simply pass anonym functions 
+    as params and then turn into Evaluators under the hood.
+3. Paired with C
+  - Helped a lot with working through some fine of the finer details of JS.
+  - They suggested I use classes, but I don't like how it looks so I went ahead and used JS closures instead for a lot of what I'm doing. 
 
 ### 2026 Jan 29
 
