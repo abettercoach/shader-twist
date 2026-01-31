@@ -5,12 +5,18 @@
       it's time to put together a toy for demo palooza!
 2. Can we only use the exponential function without interpolation (eg. for circle radius)?
 
+### 2026 Jan 30
+1. Phaser/Oscillator Params
+  a. Velocity
+  b. Min / Max Values
+  c. Start Value
+2. Setup Digitakt to Receive Mutes and Unmutes
+
 ### 2026 Jan 29
 
 1. Phasers
     - Paired with David Allen Feil, who helped me approach the problem from a new angle
-    - Specifically, instead of thinking about changing the frequency and how it relates to time, to
-      forget about time, because time is simply phase. We can keep track of phase (from 0 to 2PI) 
+    - Specifically, instead of thinking about changing the frequency and how it relates to time, to forget about time, because time is simply phase. We can keep track of phase (from 0 to 2PI) 
       and at each frame increment it by a velocity vector tied to a Midi CC. 
     - We also played around with using non-linear functions to have finer control at specific points, for example
       when modifying a circle radius, we'll want finer control when it's small (at lower values of the potentiometer),

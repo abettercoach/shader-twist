@@ -9,76 +9,28 @@ varying vec2 vTexCoord;
 uniform vec2 u_resolution;
 uniform float u_time;
 
-uniform float u_midi[128];
-uniform float u_radius;
-uniform float u_oscillator;
+
+//Global (Ch 1)
 uniform float u_phase;
+uniform float u_radius;
+uniform vec3 u_background; //CC 4-6
+uniform float u_k; //CC 7
 
-float random (float n) {
-    return fract(sin(n) * 43758.5453123);
-}
-float random (vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-}
+//For each circle (Channels 10-16)
+// - x,y,r, Muted //CCs 1,2,3,94
+struct CircleData
+{
+    vec2 position;
+    float radius;
+    float muted;
+};
+uniform CircleData u_circles[7]; 
 
-vec2 brickTile(vec2 _st, float _zoom){
-    _st *= _zoom;
-    
-    float x = _st.x;
-    float y = _st.y;
-    
-    float t = u_phase * 3.;
-
-    // Here is where the offset is happening
-    _st.x += step(1., mod(y, 2.0)) * 
-        (max(0.0,min(1.0, sin(t)  + .5)));
-    _st.x += step(1., mod(y + 1.,2.0)) * 
-        (max(0.0,min(1.0,1.0 - (sin(t)  + .5))));
-    
-     _st.y += step(1., mod(x ,2.0)) *
-         (max(0.0,min(1.0,cos(t)  + .5)));
-     _st.y += step(1., mod(x+1. ,2.0)) *
-        (max(0.0,min(1.0,1.0 - (cos(t)  + .5))));
-
-    return fract(_st);
+float smoothen(float d1, float d2) {
+    float k = u_k;
+    return -log(exp(-k * d1) + exp(-k * d2)) / k;
 }
 
-vec2 brickTileOp(vec2 _st, float _zoom){
-    _st *= _zoom;
-    
-    float x = _st.x;
-    float y = _st.y;
-    
-    float t = u_phase * 3.;
-
-    // Here is where the offset is happening
-    _st.x += step(1., mod(y + 1., 2.0)) * 
-        (max(0.0,min(1.0, sin(t)  + .5)));
-    _st.x += step(1., mod(y,2.0)) * 
-        (max(0.0,min(1.0,1.0 - (sin(t)  + .5))));
-    
-     _st.y += step(1., mod(x+1.,2.0)) *
-         (max(0.0,min(1.0,cos(t)  + .5)));
-     _st.y += step(1., mod(x,2.0)) *
-        (max(0.0,min(1.0,1.0 - (cos(t)  + .5))));
-
-    return fract(_st);
-}
-
-
-float circle(in vec2 _st, in vec2 pos, in float _radius){
-    vec2 l = _st-pos;
-    return 1.0-smoothstep(_radius-(_radius*.001),
-                         _radius+(_radius*.001),
-                         dot(l,l)*8.0);
-}
-
-float circle_fuzz(in vec2 _st, in vec2 pos, in float _radius){
-    vec2 l = _st-pos;
-    return 1.0-smoothstep(_radius-(_radius*.1),
-                         _radius+(_radius*.5),
-                         dot(l,l)*8.0);
-}
 
 void main()
 {
@@ -90,21 +42,27 @@ void main()
     
     vec3 color = vec3(1.0);
 
-    // Apply the brick tiling
-    vec2 st_r = brickTile(st,(sin(u_phase) + 1.) * 2.0 + 2.) + 0.09;
-    vec2 st_g = brickTileOp(st,(sin(u_phase + .5) + 1.) * 2.5 + 2.) - 0.05;
-    vec2 st_b = brickTile(st,(sin(u_phase + .75) + 1.) * 2.6 + 2.) + 0.035;
-    
-    float r = 1.0 - circle(st_r,vec2(0.5),0.4);
-    float g = 0.95 - circle(st_g,vec2(0.5),0.4);
-    float b = 0.75 - circle(st_b,vec2(0.5),0.4);
-    
     //Big circle
-    float pct = circle(st,vec2(0.0), u_radius);
+    vec2 p0 = vec2(0.,0.);
+
+    //Small circles
+    vec2 p1 = vec2(-sin(u_time / 5.) * .7, -cos(u_time / 3.) * 0.5);
+    vec2 p2 = vec2(sin(u_time / 1.3) * 0.2, -cos(u_time / 2.3) * 0.8);
+    vec2 p3 = vec2(sin(u_time / 3.3) * 1., cos(u_time / 1.3) * 0.8);
+    vec2 p4 = vec2(sin(u_time + 3.14 / 2.3) * 1., cos(u_time / 1.3) * 0.8);
     
-    color = mix(color, vec3(r,g,b), 1.0);
-    color = mix(color, vec3(1.-b,1.-r,1.-g), pct);
+    float d = smoothen(distance(st, p0) * u_radius, distance(st, p1) * (((sin(u_time) + 1.0) / 2. + 1.) * 5.0));
+	d = smoothen(d, distance(st, p2) * (((sin(u_time) + 1.0) / 2. + 1.) * 5.0));
+    d = smoothen(d,distance(st,p3) * (((cos(u_time) + 1.0) / 2. + 1.) * 5.0));
+    d = smoothen(d,distance(st,p4) * (((sin(u_time) + 1.0) / 2. + 1.) * 5.0));
+    
+    
+    float ae = 5. / u_resolution.y; //Anti-aliasing
+    vec3 lava_pct = 1.0-vec3(smoothstep(0.8, 0.8+ae, d));
+    
+    color = mix(color, u_background, 1.0); //Background color
+    color = mix(color, vec3(0.), lava_pct);
+    
     
     gl_FragColor = vec4(color,1.0);
 }
-
