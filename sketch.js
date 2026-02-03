@@ -49,7 +49,7 @@ function draw() {
 
 function deepSetup() {
 
-  let tempo = midi().ch(1).cc(1).range(-1,1).map((x) => {
+  let tempo = midi().ch(5).cc(1).range(-1,1).map((x) => {
     let y = Math.pow(Math.cos(PI * x / 2), 2);
     if (x < 0) {
       y = y - 1;
@@ -60,35 +60,34 @@ function deepSetup() {
   });
 
   let mainPhaser = phaser();
-  mainPhaser.vel(new Evaluator(() => (tempo.value() * 0.1)));
-  mainPhaser.min(midi().ch(1).cc(2).range(0.5,2));
-  mainPhaser.max(midi().ch(1).cc(3).range(2,10));
+  mainPhaser.vel(() => (tempo.value() * 0.1));
+  mainPhaser.min(midi().ch(5).cc(2).range(0.5,2));
+  mainPhaser.max(midi().ch(5).cc(3).range(2,10));
 
   let u_radius = uniform('u_radius');
   u_radius.bind(mainPhaser);
 
-  let t = clock();
-  t.vel(tempo);
+  let t = clock(tempo); 
 
   let u_time = uniform('u_time');
   u_time.bind(t);
 
   let u_background = uniform('u_background');
-  u_background.bind(new Evaluator(() => {
+  u_background.bind(() => {
     let bg = [0,0,0];
-    bg[0] = midi().ch(1).cc(4).value();
-    bg[1] = midi().ch(1).cc(5).value();
-    bg[2] = midi().ch(1).cc(6).value();
-    console.log(bg);
+    bg[0] = midi().ch(5).cc(4).value();
+    bg[1] = midi().ch(5).cc(5).value();
+    bg[2] = midi().ch(5).cc(6).value();
+
     return bg;
-  }));
+  });
 
   let u_k = uniform('u_k');
-  u_k.bind(midi().ch(1).cc(7).range(0.5,10));
+  u_k.bind(midi().ch(5).cc(7).range(0.5,10));
 
-  // let u_circles = uniform('u_circles');
-  // for (let i = 0; i < 7; i++) {
-  //   let ch = i + 10;
+  let u_circles = uniform('u_circles');
+  for (let i = 0; i < 7; i++) {
+    let ch = i + 10;
   //   let u = u_circles[i];
 
   //   let xPhaser = phaser();
@@ -115,7 +114,7 @@ function deepSetup() {
   //   u[1].bind(circle.y);
   //   u[2].bind(circle.r);
   //   u[3].bind(midi().ch(ch).cc(94));
-  // }
+  }
 }
 
 class Evaluator {
@@ -131,73 +130,89 @@ class Evaluator {
     //Assuming we'll only call range
     //on an evaluator that currently goes 
     //from 0 to 1.
-    return new Evaluator(() => {
+    return e(() => {
       let val = this._fn();
       return val * (max - min) + min;
     });
   }
 
   map(f) {
-    return new Evaluator(() => {
+    return e(() => {
      return  f(this._fn());
     });
   }
 }
 
-function clock() {
-  let _phase = 0.0;
-  let _vel = new Evaluator(() => 0);
-  let _update = () => {
-    _phase += _vel.value();
-    requestAnimationFrame(_update);
-  };
+function e(f) {
+  if (f instanceof Evaluator) {
+    return f;
+  }
+  return new Evaluator(f);
+}
 
-  let o = {
-    vel: (o) => {
-      _vel = o;
-    },
-    value: () => {
-      return _phase;
-    }
-  };
-  requestAnimationFrame(_update);
+class Phaser extends Evaluator {
+  constructor() {
+    super(() => {
+      let max = this._max.value();
+      let min = this._min.value();
+      let amp = (max - min) / 2;
+      let mid = (max + min) / 2;
+      let v = amp * Math.sin(this._phase) + mid;
+      return v;
+    });
 
-  return o;
+    this._phase = 0.0;
+    this._vel = e(() => 0);
+    this._min = e(() => -1);
+    this._max = e(() => 1);
+
+    requestAnimationFrame(() => this._update());
+  }
+
+  _update() {
+    this._phase += this._vel.value();
+    requestAnimationFrame(() => this._update());
+  }
+
+  vel(f) {
+    this._vel = e(f);
+  }
+
+  min(f) {
+    this._min = e(f);
+  }
+
+  max(f) {
+    this._max = e(f);
+  }
+
 }
 
 function phaser() {
-  let _phase = 0.0;
-  let _vel = new Evaluator(() => 0);
-  let _min = new Evaluator(() => -1);
-  let _max = new Evaluator(() => 1);
-  let _update = () => {
-    _phase += _vel.value();
-    requestAnimationFrame(_update);
-  };
+  return new Phaser();
+}
 
-  let o = {
-    vel: (o) => {
-      _vel = o;
-    },
-    min: (o) => {
-      _min = o;
-    },
-    max: (o) => {
-      _max = o;
-    },
-    value: () => {
-      let max = _max.value();
-      let min = _min.value();
-      let amp = (max - min) / 2;
-      let mid = (max + min) / 2;
-      let v = amp * Math.sin(_phase) + mid;
-      console.log(max, min, amp, mid, v);
-      return v;
+class Clock extends Evaluator {
+  constructor(vel) {
+    super(() => this._phase);
+
+    this._phase = 0.0;
+    if (!vel) {
+      vel = () => 1;
     }
-  };
-  requestAnimationFrame(_update);
+    this._vel = e(vel);
+    
+    requestAnimationFrame(() => this._update());
+  }
 
-  return o;
+  _update() {
+    this._phase += this._vel.value();
+    requestAnimationFrame(() => this._update());
+  }
+}
+
+function clock(vel) {
+  return new Clock(vel);
 }
 
 function midi() {
@@ -205,7 +220,7 @@ function midi() {
     ch: (n_ch) => {
       return {
         cc: (n_cc) => {
-          return new Evaluator(() => {
+          return e(() => {
             return Math.round(MIDIChs[n_ch].cc[n_cc] * 100)/100;
           });
         }
@@ -217,17 +232,17 @@ function midi() {
 }
 
 function uniform(name) {
-  let _evaluator = new Evaluator(() => 0.0);
+  let _evaluator = e(() => 0.0);
   let _update = () => {
     let v = _evaluator.value();
-    console.log(name, v);
+    // console.log(name, v);
     myShader.setUniform(name, v);
     requestAnimationFrame(_update);
   };
 
   let o = {
-    bind: (evaluator) => {
-      _evaluator = evaluator;
+    bind: (f) => {
+      _evaluator = e(f);
     }
   };
   requestAnimationFrame(_update);

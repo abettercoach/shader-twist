@@ -1,14 +1,20 @@
 # To Do
 
-1. Fun shader: Blobs!
-    - Now that we figured out interpolation, non-linear scaling/mapping, and phasing, as well as have a better idea of how to write our functions (thanks Hydra!),
-      it's time to put together a toy for demo palooza!
-2. Can we only use the exponential function without interpolation (eg. for circle radius)?
-3. Mute / Unmute (for all the extra circles)
+1. Modulate other circles
+2. Mute / Unmute (for all the extra circles)
+3. Inject uniform definitions into GLSL
 
 Refactoring:
 1. It's time to start breaking apart the main .js file into components.
 - Eg. phaser.js, midi.js, uniform.js, etc.
+
+### 2026 Feb 2
+1. 
+
+### 2026 Jan 31
+1. Used the tooling built yesterday to expand on play:
+  - Can change background color
+  - Can change smoothing coefficient for a more or less blobby effect.
 
 ### 2026 Jan 30
 1. Phaser/Oscillator Params
