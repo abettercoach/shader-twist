@@ -60,7 +60,7 @@ function deepSetup() {
   });
 
   let mainPhaser = phaser();
-  mainPhaser.vel(() => (tempo.value() * 0.1));
+  mainPhaser.vel(tempo.scale(0.1));
   mainPhaser.min(midi().ch(5).cc(2).range(0.5,2));
   mainPhaser.max(midi().ch(5).cc(3).range(2,10));
 
@@ -131,15 +131,16 @@ class Evaluator {
     //on an evaluator that currently goes 
     //from 0 to 1.
     return e(() => {
-      let val = this._fn();
-      return val * (max - min) + min;
+      return v(this) * (v(max) - v(min)) + v(min);
     });
   }
 
+  scale(factor) {
+    return e(() => v(this) * v(factor));
+  }
+
   map(f) {
-    return e(() => {
-     return  f(this._fn());
-    });
+    return e(() => f(v(this)));
   }
 }
 
@@ -150,15 +151,21 @@ function e(f) {
   return new Evaluator(f);
 }
 
+function v(e) {
+  if (e instanceof Evaluator) {
+    return e.value();
+  }
+  return e;
+}
+
 class Phaser extends Evaluator {
   constructor() {
     super(() => {
-      let max = this._max.value();
-      let min = this._min.value();
+      let max = v(this._max);
+      let min = v(this._min);
       let amp = (max - min) / 2;
       let mid = (max + min) / 2;
-      let v = amp * Math.sin(this._phase) + mid;
-      return v;
+      return amp * Math.sin(this._phase) + mid;
     });
 
     this._phase = 0.0;
@@ -170,7 +177,7 @@ class Phaser extends Evaluator {
   }
 
   _update() {
-    this._phase += this._vel.value();
+    this._phase += v(this._vel);
     requestAnimationFrame(() => this._update());
   }
 
@@ -206,7 +213,7 @@ class Clock extends Evaluator {
   }
 
   _update() {
-    this._phase += this._vel.value();
+    this._phase += v(this._vel);
     requestAnimationFrame(() => this._update());
   }
 }
@@ -220,9 +227,7 @@ function midi() {
     ch: (n_ch) => {
       return {
         cc: (n_cc) => {
-          return e(() => {
-            return Math.round(MIDIChs[n_ch].cc[n_cc] * 100)/100;
-          });
+          return e(() => Math.round(MIDIChs[n_ch].cc[n_cc] * 100)/100);
         }
       }
     }
@@ -234,9 +239,7 @@ function midi() {
 function uniform(name) {
   let _evaluator = e(() => 0.0);
   let _update = () => {
-    let v = _evaluator.value();
-    // console.log(name, v);
-    myShader.setUniform(name, v);
+    myShader.setUniform(name, v(_evaluator));
     requestAnimationFrame(_update);
   };
 
