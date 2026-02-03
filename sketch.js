@@ -59,31 +59,36 @@ function deepSetup() {
     return y / 5;
   });
 
-  let mainPhaser = phaser();
-  mainPhaser.vel(tempo.scale(0.1));
-  mainPhaser.min(midi().ch(5).cc(2).range(0.5,2));
-  mainPhaser.max(midi().ch(5).cc(3).range(2,10));
+  let mainPhaser = phaser()
+    .vel(tempo.scale(0.1))
+    .min(midi().ch(5).cc(2).range(0.5,2))
+    .max(midi().ch(5).cc(3).range(2,10));
 
   let u_radius = uniform('u_radius');
   u_radius.bind(mainPhaser);
 
-  let t = clock(tempo); 
-
   let u_time = uniform('u_time');
-  u_time.bind(t);
+  u_time.bind(clock(tempo));
 
   let u_background = uniform('u_background');
   u_background.bind(() => {
     let bg = [0,0,0];
-    bg[0] = midi().ch(5).cc(4).value();
-    bg[1] = midi().ch(5).cc(5).value();
-    bg[2] = midi().ch(5).cc(6).value();
+    bg[0] = v(midi().ch(5).cc(4));
+    bg[1] = v(midi().ch(5).cc(5));
+    bg[2] = v(midi().ch(5).cc(6));
 
     return bg;
   });
 
   let u_k = uniform('u_k');
   u_k.bind(midi().ch(5).cc(7).range(0.5,10));
+
+  // let x = phaser(tempo).min(ch().cc()).max(ch().cc()).offset();
+  // let y = phaser(tempo).min(ch().cc()).max(ch().cc()).offset();
+  // let r = phaser(tempo).min(ch().cc()).max(ch().cc()).offset();
+  // let c = circle().x(x).y(y).r(r).hide(ch().mute());
+  // uniform('circle').bind();
+
 
   let u_circles = uniform('u_circles');
   for (let i = 0; i < 7; i++) {
@@ -183,14 +188,17 @@ class Phaser extends Evaluator {
 
   vel(f) {
     this._vel = e(f);
+    return this;
   }
 
   min(f) {
     this._min = e(f);
+    return this;
   }
 
   max(f) {
     this._max = e(f);
+    return this;
   }
 
 }

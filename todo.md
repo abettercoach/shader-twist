@@ -9,7 +9,9 @@ Refactoring:
 - Eg. phaser.js, midi.js, uniform.js, etc.
 
 ### 2026 Feb 2
-1. 
+1. Cleaned up syntax
+2. Started playing around with what I want circle definitions to look like.
+  - Playing around in GLSL to see how I'll achieve programatically injecting shapes, sdfs, or other functions into the GLSL
 
 ### 2026 Jan 31
 1. Used the tooling built yesterday to expand on play:

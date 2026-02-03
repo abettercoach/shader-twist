@@ -34,6 +34,8 @@ float smoothen(float d1, float d2) {
 
 void main()
 {
+    float ae = 5. / u_resolution.y; //Anti-aliasing
+
     vec2 st = vTexCoord.xy;
     st.x *= u_resolution.x/u_resolution.y;
     
@@ -51,17 +53,23 @@ void main()
     vec2 p3 = vec2(sin(u_time / 3.3) * 1., cos(u_time / 1.3) * 0.8);
     vec2 p4 = vec2(sin(u_time + 3.14 / 2.3) * 1., cos(u_time / 1.3) * 0.8);
     
-    float d = smoothen(distance(st, p0) * u_radius, distance(st, p1) * (((sin(u_time) + 1.0) / 2. + 1.) * 5.0));
-	d = smoothen(d, distance(st, p2) * (((sin(u_time) + 1.0) / 2. + 1.) * 5.0));
-    d = smoothen(d,distance(st,p3) * (((cos(u_time) + 1.0) / 2. + 1.) * 5.0));
-    d = smoothen(d,distance(st,p4) * (((sin(u_time) + 1.0) / 2. + 1.) * 5.0));
+    // float d = smoothen(distance(st, p0) * u_radius, distance(st, p1) * (((sin(u_time) + 1.0) / 2. + 1.) * 5.0));
+	// d = smoothen(d, distance(st, p2) * (((sin(u_time) + 1.0) / 2. + 1.) * 5.0));
+    // d = smoothen(d, distance(st,p3) * (((cos(u_time) + 1.0) / 2. + 1.) * 5.0));
+    // d = smoothen(d, distance(st,p4) * (((sin(u_time) + 1.0) / 2. + 1.) * 5.0));
     
+    float circle_sdf = distance(st, p0) * u_radius;
+    vec3 pct = 1.0 - vec3(smoothstep(0.8, 0.8+ae, circle_sdf));
+    color = mix(color, vec3(0.), pct);
+
+    float circle_sdf2 = distance(st, vec2(0.15, 0.15)) * u_radius * 3.;
+    vec3 pct2 = 1.0 - vec3(smoothstep(0.8, 0.8+ae, circle_sdf2));
+    color = mix(color, vec3(0.), pct2);
     
-    float ae = 5. / u_resolution.y; //Anti-aliasing
-    vec3 lava_pct = 1.0-vec3(smoothstep(0.8, 0.8+ae, d));
+    // vec3 lava_pct = 1.0-vec3(smoothstep(0.8, 0.8+ae, d));
     
-    color = mix(color, u_background, 1.0); //Background color
-    color = mix(color, vec3(0.), lava_pct);
+    // color = mix(color, u_background, 1.0); //Background color
+    // color = mix(color, vec3(0.), lava_pct);
     
     
     gl_FragColor = vec4(color,1.0);
