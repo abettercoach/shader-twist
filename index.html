@@ -4,6 +4,9 @@
     <script src="https://cdn.jsdelivr.net/npm/p5@1.11.5/lib/p5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/addons/p5.sound.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/webmidi@next/dist/iife/webmidi.iife.js"></script>
+
+    <script type="module" src="src/twist.js"></script>
+
     <meta charset="utf-8" />
     <title>Hello World</title>
     <style>
@@ -16,11 +19,24 @@
         width: 100vw;
         height: 100vh;
       }
+      pre {
+          position: fixed;
+          bottom: 0;
+          height: auto;
+          max-height: 200px;
+          overflow: auto;
+          background-color: #eeeeee;
+          word-break: normal !important;
+          word-wrap: normal !important;
+          white-space: pre !important;
+          margin: 0;
+      }​
     </style>
   </head>
   <body>
+    <pre id="code"></pre>
     <main>
     </main>
-    <script src="sketch.js"></script>
+    <script type="module" src="./sketch.js"></script>
   </body>
 </html>

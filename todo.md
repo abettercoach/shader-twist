@@ -2,11 +2,17 @@
 
 1. Modulate other circles
 2. Mute / Unmute (for all the extra circles)
-3. Inject uniform definitions into GLSL
+  https://www.elektronauts.com/t/pattern-mute-midi-cc-on-digitakt/51516/4
 
-Refactoring:
-1. It's time to start breaking apart the main .js file into components.
-- Eg. phaser.js, midi.js, uniform.js, etc.
+
+### 2026 Feb 3
+1. Split into different js modules / files.
+2. Created GLSL object so we can layer different functions
+  - Automagic uniforms
+  - Injected GLSL
+  - Working:
+    - Simple RGB Fill layer
+    - Circle Shape
 
 ### 2026 Feb 2
 1. Cleaned up syntax

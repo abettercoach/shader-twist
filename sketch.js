@@ -1,262 +1,101 @@
 // by iris enrique
-// Midi Controlled Shader
+// Shader Twist
+// Midi Controlled Shaders
 // Elektron Digitakt | Proj "Shaders" Bnk A 
 
-let myShader;
-
-let MIDIChs = Array.from({
-    length: 16
-  }, _ => ({
-    cc: Array(128).fill(0.5)
-  }));
-let velocity = 0;
-
-function preload() {
-  myShader = loadShader('./shader.vert', './shader.frag');
-}
-
-function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
-
-  shader(myShader);
-
-  WebMidi.enable().then(() => {
-    let digitakt = WebMidi.getInputByName("Elektron Digitakt");
-    if (!digitakt) {
-      console.log("Digitakt not found");
-      return;
-    }
-
-    digitakt.addListener("controlchange", e => {
-      let ch = e.message.channel;
-      let cc = e.controller.number;
-      let v = e.value;
-      MIDIChs[ch].cc[cc] = v;
-    });
-
-    deepSetup();
-  });
-
-  myShader.setUniform('u_resolution', [width, height]);
-}
-
-function draw() {
-  noStroke();
-
-  // apply the shader to a rectangle taking up the full canvas
-  plane(width, height);
-}
-
-function deepSetup() {
-
-  let tempo = midi().ch(5).cc(1).range(-1,1).map((x) => {
-    let y = Math.pow(Math.cos(PI * x / 2), 2);
-    if (x < 0) {
-      y = y - 1;
-    } else {
-      y = 1 - y;
-    }
-    return y / 5;
-  });
-
-  let mainPhaser = phaser()
-    .vel(tempo.scale(0.1))
-    .min(midi().ch(5).cc(2).range(0.5,2))
-    .max(midi().ch(5).cc(3).range(2,10));
-
-  let u_radius = uniform('u_radius');
-  u_radius.bind(mainPhaser);
-
-  let u_time = uniform('u_time');
-  u_time.bind(clock(tempo));
-
-  let u_background = uniform('u_background');
-  u_background.bind(() => {
-    let bg = [0,0,0];
-    bg[0] = v(midi().ch(5).cc(4));
-    bg[1] = v(midi().ch(5).cc(5));
-    bg[2] = v(midi().ch(5).cc(6));
-
-    return bg;
-  });
-
-  let u_k = uniform('u_k');
-  u_k.bind(midi().ch(5).cc(7).range(0.5,10));
-
-  // let x = phaser(tempo).min(ch().cc()).max(ch().cc()).offset();
-  // let y = phaser(tempo).min(ch().cc()).max(ch().cc()).offset();
-  // let r = phaser(tempo).min(ch().cc()).max(ch().cc()).offset();
-  // let c = circle().x(x).y(y).r(r).hide(ch().mute());
-  // uniform('circle').bind();
+import {v, e} from '/src/evaluator.js'
+import {phaser} from '/src/phaser.js'
+import {midi} from '/src/midi.js'
+import {GLSL, layer, glob, circle} from '/src/twist.js';
 
 
-  let u_circles = uniform('u_circles');
-  for (let i = 0; i < 7; i++) {
-    let ch = i + 10;
-  //   let u = u_circles[i];
+new p5((p) => {
 
-  //   let xPhaser = phaser();
-  //   xPhaser.vel = clock.vel;
-  //   xPhaser.min(midi().ch(ch).cc(1));
-  //   xPhaser.max(midi().ch(ch).cc(2));
+  const glsl = new GLSL(p);
+  let font;
+  let code = false;
 
-  //   let yPhaser = phaser();
-  //   yPhaser.vel = clock.vel;
-  //   yPhaser.min(midi().ch(ch).cc(3));
-  //   yPhaser.max(midi().ch(ch).cc(4));
+  p.preload = () => {
+    font = p.loadFont("assets/LilitaOne-Regular.ttf");
+  };
 
-  //   let rPhaser = phaser();
-  //   rPhaser.vel = clock.vel;
-  //   rPhaser.min(midi().ch(ch).cc(5));
-  //   rPhaser.max(midi().ch(ch).cc(5));
+  p.setup = () => {
+    p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL);
 
-  //   let circle = circle();
-  //   circle.x(xPhaser);
-  //   circle.y(yPhaser);
-  //   circle.r(rPhaser);
-
-  //   u[0].bind(circle.x);
-  //   u[1].bind(circle.y);
-  //   u[2].bind(circle.r);
-  //   u[3].bind(midi().ch(ch).cc(94));
-  }
-}
-
-class Evaluator {
-  constructor(fn) {
-    this._fn = fn;
-  }
-
-  value() {
-    return this._fn();
-  }
-
-  range(min, max) {
-    //Assuming we'll only call range
-    //on an evaluator that currently goes 
-    //from 0 to 1.
-    return e(() => {
-      return v(this) * (v(max) - v(min)) + v(min);
-    });
-  }
-
-  scale(factor) {
-    return e(() => v(this) * v(factor));
-  }
-
-  map(f) {
-    return e(() => f(v(this)));
-  }
-}
-
-function e(f) {
-  if (f instanceof Evaluator) {
-    return f;
-  }
-  return new Evaluator(f);
-}
-
-function v(e) {
-  if (e instanceof Evaluator) {
-    return e.value();
-  }
-  return e;
-}
-
-class Phaser extends Evaluator {
-  constructor() {
-    super(() => {
-      let max = v(this._max);
-      let min = v(this._min);
-      let amp = (max - min) / 2;
-      let mid = (max + min) / 2;
-      return amp * Math.sin(this._phase) + mid;
-    });
-
-    this._phase = 0.0;
-    this._vel = e(() => 0);
-    this._min = e(() => -1);
-    this._max = e(() => 1);
-
-    requestAnimationFrame(() => this._update());
-  }
-
-  _update() {
-    this._phase += v(this._vel);
-    requestAnimationFrame(() => this._update());
-  }
-
-  vel(f) {
-    this._vel = e(f);
-    return this;
-  }
-
-  min(f) {
-    this._min = e(f);
-    return this;
-  }
-
-  max(f) {
-    this._max = e(f);
-    return this;
-  }
-
-}
-
-function phaser() {
-  return new Phaser();
-}
-
-class Clock extends Evaluator {
-  constructor(vel) {
-    super(() => this._phase);
-
-    this._phase = 0.0;
-    if (!vel) {
-      vel = () => 1;
-    }
-    this._vel = e(vel);
+    const main = midi().ch(9);
     
-    requestAnimationFrame(() => this._update());
-  }
+    let tempo = main.cc(1).range(-1,1).easemid().scale(0.2);
 
-  _update() {
-    this._phase += v(this._vel);
-    requestAnimationFrame(() => this._update());
-  }
-}
+    const ch10 = midi().ch(10);
+    const ch11 = midi().ch(11);
+    const ch12 = midi().ch(12);
+    const ch13 = midi().ch(13);
+    const ch14 = midi().ch(14);
+    const ch15 = midi().ch(15);
+    const ch16 = midi().ch(16);
 
-function clock(vel) {
-  return new Clock(vel);
-}
-
-function midi() {
-  let o = {
-    ch: (n_ch) => {
-      return {
-        cc: (n_cc) => {
-          return e(() => Math.round(MIDIChs[n_ch].cc[n_cc] * 100)/100);
-        }
-      }
+    const glob_circle = (ch) => {
+      return circle()
+        .x(phaser().vel(tempo.scale(ch.cc(7).scale(4))).min(-0.5).max(0.5).offset(ch.cc(3).range(-Math.PI, Math.PI)))
+        .y(phaser().vel(tempo.scale(ch.cc(8).scale(4))).min(-0.5).max(0.5).offset(ch.cc(4).range(-Math.PI, Math.PI)))
+        .r(phaser().vel(tempo.scale(ch.cc(5).scale(4))).min(ch.cc(1).easemid()).max(ch.cc(2).easemid()))
+        .toggle(ch.mute())
     }
+
+    glsl.layers([
+      layer()
+        .hsv(() => {
+          let c = [];
+          c[0] = v(main.cc(2));
+          c[1] = v(main.cc(3));
+          c[2] = v(main.cc(4));
+          return c;
+        }),
+      glob().shapes([
+        glob_circle(ch10),
+        glob_circle(ch11),
+        glob_circle(ch12),
+        glob_circle(ch13),
+        glob_circle(ch14),
+        glob_circle(ch15),
+        glob_circle(ch16),
+      ])
+        .k(main.cc(5).range(0.2,4))
+        .hsv(() => {
+          let c = [];
+          c[0] = v(main.cc(6));
+          c[1] = v(main.cc(7));
+          c[2] = v(main.cc(8));
+          return c;
+        })
+    ]);
+
+    glsl.compile();
+  };
+  
+  p.draw = () => {
+    p.noStroke();
+
+    // apply the shader to a rectangle taking up the full canvas
+    p.plane(p.width, p.height);
+
+    
+    // p.fill('black');
+    // p.textFont(font);
+    // p.textSize(5);
+    // if (code)
+    //   p.text(glsl._frag(), -p.width/2, -p.height/2);
   };
 
-  return o;
-}
-
-function uniform(name) {
-  let _evaluator = e(() => 0.0);
-  let _update = () => {
-    myShader.setUniform(name, v(_evaluator));
-    requestAnimationFrame(_update);
-  };
-
-  let o = {
-    bind: (f) => {
-      _evaluator = e(f);
+  p.keyPressed = () => {
+    code = !code;
+    const p = document.getElementById("code");
+    if (code) {
+      p.innerHTML = glsl._frag();
+      p.style.visibility = "visible";
+    } else {
+      p.innerHTML = "";
+      p.style.visibility = "hidden";
     }
-  };
-  requestAnimationFrame(_update);
-
-  return o;
-}
+  }
+});
