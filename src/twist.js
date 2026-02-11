@@ -75,6 +75,9 @@ export class GLSL {
       #ifdef GL_ES
       precision mediump float;
       #endif
+
+      #define PI 3.14159265359
+      #define TWO_PI 6.28318530718
     `;
 
     let standard = `
@@ -94,6 +97,16 @@ export class GLSL {
       float circle_sdf(vec2 st, vec2 p, float r) {
           if (r == 0.0) return 1.0;
           return distance(st, p) * 1.0/r;
+      }
+
+      float polygon_sdf(vec2 st, int N) {
+        // From: https://thebookofshaders.com/07/
+        // Angle and radius from the current pixel
+        float a = atan(st.x,st.y)+PI;
+        float r = TWO_PI/float(N);
+
+        // Shaping function that modulate the distance
+        return cos(floor(.5+a/r)*r-a)*length(st) * 8.0;
       }
 
       float shape(float sdf) {
@@ -151,9 +164,10 @@ export class GLSL {
   }
 
   compile() {
-    this._compile_layers();
+    this._shader = null;
 
-    console.log(this._frag());
+    
+    this._compile_layers();
 
     this._shader = this._p5.createShader(this._vert(), this._frag());
     this._p5.shader(this._shader);
@@ -199,6 +213,18 @@ class Layer {
   hsv(f) {
     this._uniforms.hsv.val = e(f);
     return this;
+  }
+
+  unbind_uniforms(glsl, id) {
+    let sub_id = 0;
+    for (let sub of this._sublayers) {
+      sub.bind_uniforms(glsl, `${id}_s${sub_id}`);
+      sub_id++;
+    }
+    for (const u of Object.values(this._uniforms)){
+      let sym = `l${id}_${u.sym}`;
+      glsl.uniform(sym).bind(u.val);
+    }
   }
 
   bind_uniforms(glsl, id) {
@@ -369,3 +395,155 @@ export function glob() {
   return new Glob();
 }
 
+class Square extends Shape {
+  constructor() {
+    super();
+    // this._uniforms.x = {
+    //   type: `float`,
+    //   sym: `x`,
+    //   val: () => 0.0
+    // };
+    // this._uniforms.y = {
+    //   type: `float`,
+    //   sym: `y`,
+    //   val: () => 0.0
+    // };
+    // this._uniforms.w = {
+    //   type: `float`,
+    //   sym: `w`,
+    //   val: () => 0.5
+    // };
+    // this._uniforms.h = {
+    //   type: `float`,
+    //   sym: `h`,
+    //   val: () => 0.5
+    // };
+    this._uniforms.toggle = {
+      type: `bool`,
+      sym: `toggle`,
+      val: () => true
+    };
+  }
+
+  // x(f) {
+  //   this._uniforms.x.val = e(f);
+  //   return this;
+  // }
+
+  // y(f) {
+  //   this._uniforms.y.val = e(f);
+  //   return this;
+  // }
+
+  // w(f) {
+  //   this._uniforms.w.val = e(f);
+  //   return this;
+  // }
+
+  // h(f) {
+  //   this._uniforms.h.val = e(f);
+  //   return this;
+  // }
+
+  toggle(f) {
+    this._uniforms.toggle.val = e(f);
+    return this;
+  }
+
+  sdf(id) {
+    return `l${id}_toggle ? polygon_sdf(st, 4): 1000.0`
+  }
+
+  lines(id) {
+    return `
+      float l${id}_sdf = square(${this.sdf(id)});
+      vec4 l${id}_color = vec4(hsv2rgb(l${id}_hsv), l${id}_toggle);
+    `;
+  }
+}
+
+export function square() {
+  return new Square();
+}
+
+
+class Polygon extends Shape {
+  constructor() {
+    super();
+    // this._uniforms.x = {
+    //   type: `float`,
+    //   sym: `x`,
+    //   val: () => 0.0
+    // };
+    // this._uniforms.y = {
+    //   type: `float`,
+    //   sym: `y`,
+    //   val: () => 0.0
+    // };
+    // this._uniforms.w = {
+    //   type: `float`,
+    //   sym: `w`,
+    //   val: () => 0.5
+    // };
+    // this._uniforms.h = {
+    //   type: `float`,
+    //   sym: `h`,
+    //   val: () => 0.5
+    // };
+    this._uniforms.sides = {
+      type: `int`,
+      sym: `sides`,
+      val: () => 3
+    };
+    this._uniforms.toggle = {
+      type: `bool`,
+      sym: `toggle`,
+      val: () => true
+    };
+  }
+
+  sides(f) {
+    this._uniforms.sides.val = e(f);
+    return this;
+  }
+
+  // x(f) {
+  //   this._uniforms.x.val = e(f);
+  //   return this;
+  // }
+
+  // y(f) {
+  //   this._uniforms.y.val = e(f);
+  //   return this;
+  // }
+
+  // w(f) {
+  //   this._uniforms.w.val = e(f);
+  //   return this;
+  // }
+
+  // h(f) {
+  //   this._uniforms.h.val = e(f);
+  //   return this;
+  // }
+
+  toggle(f) {
+    this._uniforms.toggle.val = e(f);
+    return this;
+  }
+
+  sdf(id) {
+    return `l${id}_toggle ? polygon_sdf(st, l${id}_sides): 1000.0`
+  }
+
+  lines(id) {
+    return `
+      float l${id}_sdf = square(${this.sdf(id)});
+      vec4 l${id}_color = vec4(hsv2rgb(l${id}_hsv), l${id}_toggle);
+    `;
+  }
+}
+
+export function polygon() {
+  return new Polygon();
+}
