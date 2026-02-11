@@ -1,9 +1,22 @@
 # To Do
 
-1. Modulate other circles
-2. Mute / Unmute (for all the extra circles)
-  https://www.elektronauts.com/t/pattern-mute-midi-cc-on-digitakt/51516/4
+1. Refactor / Make nicer
+  - HSV / Color bindings
+  - Scenes Rethinking (midi->glsl OR glsl->midi) (glsl globals?)
+  - MIDI globals
+2. From local storage -> send/load CCs onto the elektron box ?
+3. Polygons / Shapes
+  - X, Y, sizing, and/or transformations
+4. Persist phase? Randomize start position? 
+5. Play/Explore with midi sequencing
 
+
+### 2026 Feb 8-10 Demopalooza
+1. Modulate other circles
+2. Mute / Unmute
+3. Local storage persistance
+4. Polygons
+5. Multiple scenes, switch with patterns
 
 ### 2026 Feb 3
 1. Split into different js modules / files.
